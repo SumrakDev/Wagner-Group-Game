@@ -130,7 +130,6 @@ screen battle_point:
                 textbutton "Отступить" action (Function(use_point.fallback_squad), 
                                                 Function(game_main.return_squad, wagner_squad))
             else:
-                textbutton "Завершить миссию ЧИТ" action Function(use_point.clear_point)
                 textbutton "Назад" action Jump("bakhmut")
 
 
