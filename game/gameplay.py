@@ -207,7 +207,6 @@ class Point:
             self.battle_on_point()
 
 
-
 @dataclass
 class Battlefield:
     points: dict
