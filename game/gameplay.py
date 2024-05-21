@@ -78,6 +78,7 @@ class Squad:
         self.check_vehicle()
         self.check_tank()
 
+
 @dataclass
 class Point:
     name: str = ""
