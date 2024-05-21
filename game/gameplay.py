@@ -189,7 +189,7 @@ class Point:
     def battle_on_point(self):
         damage = self.strike_power()
         wagner_damage = damage["Wagner"]
-        enemy_damage = damage['Enemy']
+        enemy_damage = damage["Enemy"]
         self.wagner_squad.troop -= enemy_damage[0]
         self.wagner_squad.troop -= enemy_damage[1]
         self.wagner_squad.troop -= enemy_damage[2]
