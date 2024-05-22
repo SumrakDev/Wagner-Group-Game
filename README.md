@@ -10,4 +10,4 @@ The main game mechanic containing in gameplay.py and use only python
 while frontend part conatining in scripts.rpy. For any modification of
 fame use gameplay.py.
 
-Developed and Support by Sumrak from 2.05.2024
+Developed and Support by Sumrak from 2.05.2024# Wagner-Group-Game

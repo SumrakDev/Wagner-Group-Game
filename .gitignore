@@ -1,0 +1,9 @@
+save/
+pip-log.txt
+pip-delete-this-directory.txt
+test_battlefield.py
+sometestshit.py
+log.txt
+errors.txt
+__pycache__/
+traceback.txt
