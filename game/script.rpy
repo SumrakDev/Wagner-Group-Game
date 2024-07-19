@@ -73,23 +73,20 @@ screen create_squad_screen:
         default squadtroop = 0
         default squadvehicle = 0
         default squadtank = 0
+
         frame:
             vbox:
                 spacing 20
 
                 text "Имя отряда:[squadname]"
                 text "Пехота:[squadtroop]"
-                bar value ScreenVariableValue("squadtroop", 100) style "slider"
-                text "Техника:[squadvehicle]"
-                bar value ScreenVariableValue("squadvehicle", 15) style "slider"
-                text "Танки:[squadtank]"
-                bar value ScreenVariableValue("squadtank", 4) style "slider"
+                bar value ScreenVariableValue("squadtroop", 53) style "slider"
                 textbutton "Создать отряд" action (Function(game_main.squad_add, Squad(squadname, squadtroop, squadvehicle, squadtank, 1)),
                                                             Jump("bakhmut"))
 
             vbox:
                 ypos 800
-                text "Если вы не добавите ни одной единицы, отряд не будет создан.\n\nДопускается создание отрядов с одинаковыми названиями."
+                text "Подсказка: Если вы не добавите ни одной единицы пехоты, отряд не будет создан.\nЧисленность отряда от 11 человек даёт БМП/БТР, Численность отряда от 44 человек даёт Танк.\n\nДопускается создание отрядов с одинаковыми названиями."
 
 
 screen tactical_panel:
@@ -101,38 +98,40 @@ screen tactical_panel:
 
 screen battle_point:
     python:
-        use_point = battlefield_bakhmut.points[active_battle_point]
-        enemy_squad = use_point.enemy_squad
-        wagner_squad = use_point.wagner_squad
-        wagner_status = use_point.empty_squad_check()
+        used_point = battlefield_bakhmut.points[active_battle_point]
+        enemy_squad = used_point.enemy_squad
+        wagner_squad = used_point.wagner_squad
+        wagner_status = used_point.empty_squad_check()
 
     frame:
         vbox:
-            if use_point.clear_status is True:
-                text "[use_point.name]"
+            if used_point.clear_status is True:
+                text "[used_point.name]"
                 text "[enemy_squad.name]"
                 text"Статус: Зачищено"
+            elif used_point.clear_status is False and used_point.recon_status is False:
+                text "Данные отсутствуют"                
             else:
-                text "[use_point.name]"
+                text "[used_point.name]"
                 text "[enemy_squad.name]"
                 text "Пехота:[enemy_squad.troop]"
                 text "Техника:[enemy_squad.vehicle]"
                 text "Танк:[enemy_squad.tank]"
                 text"Статус: Контролируется противником"
 
-            if use_point.clear_status is False and enemy_squad.name != "No Squad" and wagner_squad.name == "No Squad":
-                textbutton "Назначить отряд" action (Function(game_main.order_to_squad), Jump("SquadList"))
-                textbutton "Завершить миссию ЧИТ" action Function(use_point.clear_point)
-                textbutton "Назад" action Jump("bakhmut")
-            elif use_point.clear_status is False and enemy_squad.name != "No Squad" and wagner_squad.name != "No Squad":
-                textbutton "Атаковать" action (Function(use_point.battle_on_point),
-                                                Function(game_main.return_squad, wagner_squad), 
-                                                Jump("bakhmut"))
-                textbutton "Отступить" action (Function(use_point.fallback_squad), 
-                                                Function(game_main.return_squad, wagner_squad))
+            if used_point.recon_status is True:
+                if used_point.clear_status is False and enemy_squad.name != "No Squad" and wagner_squad.name == "No Squad":
+                    textbutton "Назначить отряд" action (Function(game_main.order_to_squad), Jump("SquadList"))
+                    textbutton "Завершить миссию ЧИТ" action Function(used_point.clear_point)
+                    textbutton "Назад" action Jump("bakhmut")
+                elif used_point.clear_status is False and enemy_squad.name != "No Squad" and wagner_squad.name != "No Squad":
+                    textbutton "Атаковать" action (Jump("BattleLabel"))
+                    textbutton "Отступить" action (Function(used_point.fallback_squad), 
+                                                    Function(game_main.return_squad, wagner_squad))
+                else:
+                    textbutton "Назад" action Jump("bakhmut")
             else:
-                textbutton "Назад" action Jump("bakhmut")
-
+                textbutton "Назначить отряд" action (Function(game_main.order_to_squad), Jump("SquadList"))
 
 ```Labels```
 
@@ -192,11 +191,25 @@ label TacticalMap:
 label PointInteraction:
 
     python:
-        use_point = battlefield_bakhmut.points[active_battle_point]
-        wagner_status = use_point.empty_squad_check()
+        used_point = battlefield_bakhmut.points[active_battle_point]
+        wagner_status = used_point.empty_squad_check()
     
     call screen battle_point
 
+label BattleLabel:
+    python:
+        result = used_point.battle_on_point()
+
+    if result == "Вагнер одержал победу":
+        python:
+            enemy_squad = used_point.enemy_squad
+            wagner_squad = used_point.wagner_squad
+            used_point.fallback_squad()
+            game_main.return_squad(wagner_squad)
+        "[result]"
+    else:
+        "[result]"
+    jump bakhmut
 
 label GameEnd:
     "Вагнер победил"

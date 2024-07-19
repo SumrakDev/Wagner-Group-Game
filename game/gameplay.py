@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 import random
+import sys
 
+sys.setrecursionlimit(10000)
 
 @dataclass
 class Army:
@@ -30,6 +32,7 @@ class Squad:
     troop: int = 0
     vehicle: int = 0
     tank: int = 0
+    recon: bool = False
     skill_value: int = 1
     TROOPS_POWER = 1
     VEHICLE_POWER = 3
@@ -40,11 +43,15 @@ class Squad:
                 self.vehicle, self.tank]
 
     def troops_power(self) -> int:
-        high_troops_power = self.troop * self.TROOPS_POWER * self.skill_value
+        high_troops_power = (self.troop *
+                             self.TROOPS_POWER *
+                             self.skill_value)
         return random.randrange(1, high_troops_power)
 
     def vehicle_power(self) -> int:
-        high_vehicle_power = self.vehicle * self.VEHICLE_POWER * self.skill_value
+        high_vehicle_power = (self.vehicle *
+                              self.VEHICLE_POWER *
+                              self.skill_value)
         return random.randrange(1, high_vehicle_power)
 
     def tank_power(self) -> int:
@@ -61,22 +68,20 @@ class Squad:
     def skill_up(self):
         self.skill_value += 1
 
-    def check_troop(self):
-        if self.troop < 0:
-            self.troop += -self.troop
-
-    def check_vehicle(self):
-        if self.vehicle < 0:
-            self.vehicle += -self.vehicle
-
-    def check_tank(self):
-        if self.tank < 0:
-            self.tank += -self.tank
-
     def check_squad_num(self):
-        self.check_troop()
-        self.check_vehicle()
-        self.check_tank()
+        if self.troop <= 0:
+            self.__dict__["troop"] = 0
+
+    def check_tech(self):
+        if self.troop < 11:
+            self.__dict__["recon"] = True
+        elif self.troop >= 11 and self.troop <= 44:
+            self.__dict__["vehicle"] = self.troop // 11
+        elif self.troop > 44 and self.troop <= 53:
+            self.__dict__["vehicle"] = (self.troop - 9) // 11
+            self.__dict__["tank"] = (self.troop - 44) // 3
+        else:
+            pass
 
 
 @dataclass
@@ -94,26 +99,23 @@ class Point:
         number_of_squad = random.randrange(1, 101)
         return f"{names} отряд номер {number_of_squad}"
 
-    def generate_enemy_forces(self) -> list:
-        troops_enemy = random.randrange(0, 101)
-        vehicle_enemy = random.randrange(0, 16)
-        tank_enemy = random.randrange(0, 5)
-        return [troops_enemy, vehicle_enemy, tank_enemy]
+    def generate_enemy_forces(self) -> int:
+        troops_enemy = random.randrange(0, 54)
+        return troops_enemy
 
     def squad_enemy_create(self) -> Squad:
         name_enemy = self.generate_enemy_name()
         enemy_forces = self.generate_enemy_forces()
-        return Squad(name_enemy,
-                     enemy_forces[0],
-                     enemy_forces[1],
-                     enemy_forces[2], random.randrange(0, 3))
+        squad = Squad(name_enemy,
+                      troop=enemy_forces,
+                      skill_value=random.randrange(0, 2))
+        squad.check_tech()
+        return squad
 
     def __post_init__(self):
         self.__dict__['enemy_squad'] = self.squad_enemy_create()
         self.__dict__['name'] = self.enemy_squad.name
 
-    def recon_mission(self):
-        pass
 
     def fallback_squad(self):
         self.__dict__['wagner_squad'] = Squad()
@@ -142,9 +144,9 @@ class Point:
                                     power_strike_wagner)
             damage_sum_enemy = int((int(wagner_power) // 4) +
                                    power_strike_enemy)
-            tech_damage_wagner = random.randrange(2, 5)
-            tank_damage_wagner = random.randrange(1, 3)
-            tech_damage_enemy = random.randrange(0, 2)
+            tech_damage_wagner = random.choice(range(2, 5))
+            tank_damage_wagner = random.choice(range(1, 3))
+            tech_damage_enemy = random.choice(range(0, 2))
             tank_damage_enemy = 0
             damage_final = {"Wagner": [damage_sum_wagner,
                                        tech_damage_wagner,
@@ -158,9 +160,9 @@ class Point:
                                     power_strike_wagner)
             damage_sum_enemy = int((int(wagner_power) // 2) +
                                    power_strike_enemy)
-            tech_damage_wagner = random.randrange(1, 2)
+            tech_damage_wagner = random.choice(range(1, 2))
             tank_damage_wagner = 0
-            tech_damage_enemy = random.randrange(1, 2)
+            tech_damage_enemy = random.choice(range(1, 2))
             tank_damage_enemy = 0
             damage_final = {"Wagner": [damage_sum_wagner,
                                        tech_damage_wagner,
@@ -174,10 +176,10 @@ class Point:
                                     power_strike_wagner)
             damage_sum_enemy = int((int(wagner_power) // 2) +
                                    power_strike_enemy)
-            tech_damage_wagner = random.randrange(0, 2)
+            tech_damage_wagner = random.choice(range(0, 2))
             tank_damage_wagner = 0
-            tech_damage_enemy = random.randrange(2, 5)
-            tank_damage_enemy = random.randrange(1, 3)
+            tech_damage_enemy = random.choice(range(2, 5))
+            tank_damage_enemy = random.choice(range(1, 3))
             damage_final = {"Wagner": [damage_sum_wagner,
                                        tech_damage_wagner,
                                        tank_damage_wagner],
@@ -204,8 +206,14 @@ class Point:
         elif self.wagner_squad.troop <= 0:
             self.fallback_squad()
             return "Отряд Вагнера уничтожен"
-        else:
-            self.battle_on_point()
+        self.battle_on_point()
+
+    def recon_point(self):
+        if self.wagner_squad.recon is True:
+            self.__dict__["recon_status"] = True
+            return "Отдряд провёл разведку"
+        elif self.wagner_squad.recon is False:
+            return "Отряд не пригоден для разведки"
 
 
 @dataclass
@@ -254,7 +262,8 @@ class Game:
             self.wagner_group.get_tanks()
 
     def squad_add(self, squad: Squad) -> None:
-        if squad.troop != 0 or squad.vehicle != 0 or squad.tank != 0:
+        if squad.troop != 0:
+            squad.check_tech()
             self.wagner_group.troops -= squad.troop
             self.wagner_group.vehicles -= squad.vehicle
             self.wagner_group.tanks -= squad.tank
@@ -281,7 +290,7 @@ class Game:
             battlefield.create_points()
         else:
             self.cooldown_battle -= 5
-    
+
     def update_battlefield(self, battlefield: Battlefield):
         for point in battlefield.points.values():
             if point.clear_status is True:
